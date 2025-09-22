@@ -68,9 +68,10 @@ spec:
           ui:field: RepoUrlPicker
           ui:options:
             allowedHosts:
-              - gitlab.forge.berger-levrault.com   # ✅ corrigé pour ton GitLab
+              - gitlab.forge.berger-levrault.com
+            # ✅ sous-groupe exact sans slash final
             allowedOwners:
-              - bl-tech/io-aws/                  # ✅ adapte le namespace si besoin
+              - bl-tech/io-aws
 
   steps:
     - id: fetchBase
@@ -87,13 +88,18 @@ spec:
           region: ${{ parameters.region }}
           assumedRoleArn: ${{ parameters.assumedRoleArn }}
           vpcId: ${{ parameters.vpcId }}
-          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+          # ✅ on force l'owner dans la destination, même si le picker a gardé un ancien owner
+          destination:
+            host: ${{ (parameters.repoUrl | parseRepoUrl).host }}
+            owner: bl-tech/io-aws
+            repo: ${{ (parameters.repoUrl | parseRepoUrl).repo }}
 
     - id: publish
       name: Publish
       action: publish:gitlab
       input:
-        repoUrl: ${{ parameters.repoUrl }}
+        # ✅ on reconstruit repoUrl avec owner forcé pour éviter le "aws-environments" résiduel
+        repoUrl: gitlab.forge.berger-levrault.com?owner=bl-tech/io-aws&repo=${{ (parameters.repoUrl | parseRepoUrl).repo }}
         repoVisibility: internal
         defaultBranch: main
 
