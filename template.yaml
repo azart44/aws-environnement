@@ -69,8 +69,6 @@ spec:
           ui:options:
             allowedHosts:
               - gitlab.forge.berger-levrault.com   # ✅ corrigé pour ton GitLab
-            allowedOwners:
-              - aws-environments                   # ✅ adapte le namespace si besoin
 
   steps:
     - id: fetchBase
