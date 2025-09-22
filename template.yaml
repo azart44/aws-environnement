@@ -69,6 +69,8 @@ spec:
           ui:options:
             allowedHosts:
               - gitlab.forge.berger-levrault.com   # ✅ corrigé pour ton GitLab
+            allowedOwners:
+              - bl-tech/io-aws/                  # ✅ adapte le namespace si besoin
 
   steps:
     - id: fetchBase
