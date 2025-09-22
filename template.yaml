@@ -69,7 +69,6 @@ spec:
           ui:options:
             allowedHosts:
               - gitlab.forge.berger-levrault.com
-            # ✅ sous-groupe exact sans slash final
             allowedOwners:
               - bl-tech/io-aws
 
@@ -88,7 +87,6 @@ spec:
           region: ${{ parameters.region }}
           assumedRoleArn: ${{ parameters.assumedRoleArn }}
           vpcId: ${{ parameters.vpcId }}
-          # ✅ on force l'owner dans la destination, même si le picker a gardé un ancien owner
           destination:
             host: ${{ (parameters.repoUrl | parseRepoUrl).host }}
             owner: bl-tech/io-aws
@@ -98,18 +96,24 @@ spec:
       name: Publish
       action: publish:gitlab
       input:
-        # ✅ on reconstruit repoUrl avec owner forcé pour éviter le "aws-environments" résiduel
         repoUrl: gitlab.forge.berger-levrault.com?owner=bl-tech/io-aws&repo=${{ (parameters.repoUrl | parseRepoUrl).repo }}
         repoVisibility: internal
         defaultBranch: main
+
+    - id: debugRegisterUrl
+      name: Debug register URL
+      action: debug:log
+      input:
+        message: >-
+          Will register:
+          ${{ (steps['publish'].output.repoContentsUrl | replace('/-/tree/', '/-/raw/')) }}/.backstage/catalog-info.yaml
 
     - id: register
       name: Register
       action: catalog:register
       input:
         catalogInfoUrl: >-
-          ${{ (steps['publish'].output.repoContentsUrl
-              | replace('/-/tree/', '/-/raw/')) }}/.backstage/catalog-info.yaml
+          ${{ (steps['publish'].output.repoContentsUrl | replace('/-/tree/', '/-/raw/')) }}/.backstage/catalog-info.yaml
 
   output:
     links:
