@@ -1,0 +1,113 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: aws-basic-environment-provider
+  title: AWS Basic Environment Provider
+  description: >
+    Create an AWS Environment entity that can be used in other templates
+    (for example RDS, S3, etc).
+  tags:
+    - aws
+    - environment
+spec:
+  owner: group:admins
+  type: resource
+  parameters:
+    - title: Provide environment information
+      required:
+        - component_id
+        - owner
+      properties:
+        component_id:
+          title: Name
+          type: string
+          description: Unique name of the environment (e.g. alex, dev, prod)
+          ui:field: EntityNamePicker
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: What this environment is for
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the environment
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: [Group]
+
+    - title: AWS Environment details
+      required:
+        - accountId
+        - region
+        - assumedRoleArn
+        - vpcId
+      properties:
+        accountId:
+          title: AWS Account ID
+          type: string
+        region:
+          title: AWS Region
+          type: string
+          default: eu-west-3
+        assumedRoleArn:
+          title: IAM Role ARN
+          type: string
+        vpcId:
+          title: VPC ID
+          type: string
+
+    - title: Choose a git repository location
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - gitlab.forge.berger-levrault.com   # ✅ corrigé pour ton GitLab
+            allowedOwners:
+              - aws-environments                   # ✅ adapte le namespace si besoin
+
+  steps:
+    - id: fetchBase
+      name: Fetch Base
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          component_id: ${{ parameters.component_id | lower | replace(" ", "") }}
+          title: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          accountId: ${{ parameters.accountId }}
+          region: ${{ parameters.region }}
+          assumedRoleArn: ${{ parameters.assumedRoleArn }}
+          vpcId: ${{ parameters.vpcId }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: publish
+      name: Publish
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        repoVisibility: internal
+        defaultBranch: main
+
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: "/.backstage/catalog-info.yaml"
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
